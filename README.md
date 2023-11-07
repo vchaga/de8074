@@ -3,7 +3,7 @@
 - Phone: 817-676-8074
 - Email: durgaprasad3.ch@gmail.com
 - LinkedIn: [Durga Prasad Ch](https://www.linkedin.com/in/vdurgaprasad/)
-- [![AWS Certified Solutions Architect Professional](https://images.credly.com/size/110x110/images/6df37053-0c61-4434-aa27-92ede606c685/AWS-Certified-Solutions-Architect-Professional.png)](https://www.credly.com/badges/6df37053-0c61-4434-aa27-92ede606c685)
+- [AWS Certified Solutions Architect Professional](https://www.credly.com/badges/6df37053-0c61-4434-aa27-92ede606c685)
 
 ## Summary
 
