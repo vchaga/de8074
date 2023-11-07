@@ -1,9 +1,7 @@
 # Venkata Durga Prasad Chagantipati
 
-- Phone: 817-676-8074
-- Email: durgaprasad3.ch@gmail.com
 - LinkedIn: [Durga Prasad Ch](https://www.linkedin.com/in/vdurgaprasad/)
-- [AWS Certified Solutions Architect Professional](https://www.credly.com/badges/6df37053-0c61-4434-aa27-92ede606c685)
+- [AWS Certified Solutions Architect Professional 2023](https://www.credly.com/badges/6df37053-0c61-4434-aa27-92ede606c685)
 
 ## Summary
 
