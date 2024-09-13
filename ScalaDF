@@ -1,0 +1,59 @@
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.Row
+
+val spark = SparkSession.builder()
+  .appName("Create DataFrames")
+  .getOrCreate()
+
+// Define the schema for 'position' DataFrame
+val positionSchema = StructType(Seq(
+  StructField("pk", StringType, nullable = true),
+  StructField("client_lkpid", IntegerType, nullable = true),
+  StructField("ult_prnt", IntegerType, nullable = true),
+  StructField("prf_ult_prnt", IntegerType, nullable = true)
+))
+
+// Data for 'position' DataFrame
+val positionData = Seq(
+  Row("pk1", 1, 2, 3),
+  Row("pk2", 4, 5, 6),
+  Row("pk3", -3, -3, -3),
+  Row("pk4", -3, -3, -3),
+  Row("pk5", -3, -3, -3),
+  Row("pk6", -3, -3, -3)
+)
+
+// Create 'position' DataFrame
+val positionDF = spark.createDataFrame(
+  spark.sparkContext.parallelize(positionData),
+  positionSchema
+)
+
+// Define the schema for 'client' DataFrame
+val clientSchema = StructType(Seq(
+  StructField("clt_oid", IntegerType, nullable = true),
+  StructField("ult_prnt", IntegerType, nullable = true),
+  StructField("prf_ult_prnt", IntegerType, nullable = true)
+))
+
+// Data for 'client' DataFrame
+val clientData = Seq(
+  Row(1, 2, 3),
+  Row(2, -3, -3),
+  Row(3, -3, -3),
+  Row(4, 5, 6),
+  Row(5, -3, -3),
+  Row(6, -3, -3),
+  Row(-3, -3, -3)
+)
+
+// Create 'client' DataFrame
+val clientDF = spark.createDataFrame(
+  spark.sparkContext.parallelize(clientData),
+  clientSchema
+)
+
+// Show the DataFrames
+positionDF.show()
+clientDF.show()
