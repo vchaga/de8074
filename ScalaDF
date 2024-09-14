@@ -1,59 +1,48 @@
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.Row
+// Step 1: Extract cntrprty_client_lkpid from pos_frame and collect into a List[String]
+val cntrprtyClientList = pos_frame
+  .select("cntrprty_client_lkpid")
+  .as[String]
+  .collect()
+  .toList
 
-val spark = SparkSession.builder()
-  .appName("Create DataFrames")
-  .getOrCreate()
+// Step 2: Filter the rdr_client_full_name based on cntrprtyClientList
+val filteredRdrClientFullName = rdr_client_full_name
+  .filter(col("clt_oid").isin(cntrprtyClientList: _*))
 
-// Define the schema for 'position' DataFrame
-val positionSchema = StructType(Seq(
-  StructField("pk", StringType, nullable = true),
-  StructField("client_lkpid", IntegerType, nullable = true),
-  StructField("ult_prnt", IntegerType, nullable = true),
-  StructField("prf_ult_prnt", IntegerType, nullable = true)
-))
+// Step 3a: Group by clt_credit_ult_prnt and collect distinct values
+val creditUltPrntDF = filteredRdrClientFullName
+  .groupBy("clt_credit_ult_prnt")
+  .agg(collect_list("clt_oid").as("distinct_clt_oid_credit"))
 
-// Data for 'position' DataFrame
-val positionData = Seq(
-  Row("pk1", 1, 2, 3),
-  Row("pk2", 4, 5, 6),
-  Row("pk3", -3, -3, -3),
-  Row("pk4", -3, -3, -3),
-  Row("pk5", -3, -3, -3),
-  Row("pk6", -3, -3, -3)
-)
+// Step 3b: Group by clt_prf_ult_prnt and collect distinct values
+val prfUltPrntDF = filteredRdrClientFullName
+  .groupBy("clt_prf_ult_prnt")
+  .agg(collect_list("clt_oid").as("distinct_clt_oid_profit"))
 
-// Create 'position' DataFrame
-val positionDF = spark.createDataFrame(
-  spark.sparkContext.parallelize(positionData),
-  positionSchema
-)
+// Step 3c: Group by clt_oid and collect distinct values
+val oidDF = filteredRdrClientFullName
+  .groupBy("clt_oid")
+  .agg(collect_list("clt_oid").as("distinct_clt_oid"))
 
-// Define the schema for 'client' DataFrame
-val clientSchema = StructType(Seq(
-  StructField("clt_oid", IntegerType, nullable = true),
-  StructField("ult_prnt", IntegerType, nullable = true),
-  StructField("prf_ult_prnt", IntegerType, nullable = true)
-))
+// Step 4: Merge the three lists (distinct_clt_oid_credit, distinct_clt_oid_profit, distinct_clt_oid) into a single list
+import org.apache.spark.sql.functions._
 
-// Data for 'client' DataFrame
-val clientData = Seq(
-  Row(1, 2, 3),
-  Row(2, -3, -3),
-  Row(3, -3, -3),
-  Row(4, 5, 6),
-  Row(5, -3, -3),
-  Row(6, -3, -3),
-  Row(-3, -3, -3)
-)
+val mergedListDF = creditUltPrntDF
+  .select(explode(col("distinct_clt_oid_credit")).as("clt_oid"))
+  .union(prfUltPrntDF.select(explode(col("distinct_clt_oid_profit")).as("clt_oid")))
+  .union(oidDF.select(explode(col("distinct_clt_oid")).as("clt_oid")))
+  .distinct() // Ensure distinct values in the merged list
 
-// Create 'client' DataFrame
-val clientDF = spark.createDataFrame(
-  spark.sparkContext.parallelize(clientData),
-  clientSchema
-)
+// Collect the merged distinct list into a List[String]
+val mergedClientOidList = mergedListDF
+  .select("clt_oid")
+  .as[String]
+  .collect()
+  .toList
 
-// Show the DataFrames
-positionDF.show()
-clientDF.show()
+// Step 5: Use the merged list to filter rdr_client_full_name
+val finalRdrClientFullName = rdr_client_full_name
+  .filter(col("clt_oid").isin(mergedClientOidList: _*))
+
+// Show the filtered results
+finalRdrClientFullName.show(truncate = false)
