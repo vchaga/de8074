@@ -46,3 +46,60 @@ val finalRdrClientFullName = rdr_client_full_name
 
 // Show the filtered results
 finalRdrClientFullName.show(truncate = false)
+
+public static Dataset<Row> unionAllSummary(Dataset<Row> firstDataset, Dataset<Row>... additionalDatasets) {
+    log.info("Util.unionAllSummary: START");
+
+    // Initialize orderedColumns and unionedDatasets
+    String[] orderedColumns = new String[0];
+    Dataset<Row> unionedDatasets = null;
+
+    // Check if the first dataset is not null
+    if (firstDataset != null) {
+        orderedColumns = firstDataset.columns();
+        unionedDatasets = firstDataset;
+    }
+
+    // Loop through the additional datasets
+    for (Dataset<Row> additionalDataset : additionalDatasets) {
+        if (additionalDataset != null) {
+            // Align columns in case the datasets do not have the same columns
+            Dataset<Row> alignedDataset = alignColumns(additionalDataset, orderedColumns);
+
+            if (unionedDatasets == null) {
+                // First time assigning unionedDatasets when additionalDataset is not null
+                orderedColumns = alignedDataset.columns();
+                unionedDatasets = alignedDataset;
+            } else {
+                // Union the datasets
+                unionedDatasets = unionedDatasets.union(alignedDataset);
+            }
+        }
+    }
+
+    log.info("Util.unionAllSummary: END");
+    return unionedDatasets;
+}
+
+/**
+ * Align the columns of a dataset to match the specified orderedColumns.
+ * If a column is missing, it will be added with null values.
+ *
+ * @param dataset         The dataset that needs alignment
+ * @param requiredColumns The columns to align to
+ * @return                Aligned dataset
+ */
+private static Dataset<Row> alignColumns(Dataset<Row> dataset, String[] requiredColumns) {
+    List<Column> selectExpr = new ArrayList<>();
+
+    for (String colName : requiredColumns) {
+        if (Arrays.asList(dataset.columns()).contains(colName)) {
+            selectExpr.add(functions.col(colName));
+        } else {
+            selectExpr.add(functions.lit(null).alias(colName));
+        }
+    }
+
+    // Select the aligned columns from the dataset
+    return dataset.select(JavaConverters.asScalaBufferConverter(selectExpr).asScala().toSeq());
+}
