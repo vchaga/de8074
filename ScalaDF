@@ -103,3 +103,41 @@ private static Dataset<Row> alignColumns(Dataset<Row> dataset, String[] required
     // Select the aligned columns from the dataset
     return dataset.select(JavaConverters.asScalaBufferConverter(selectExpr).asScala().toSeq());
 }
+
+public static Dataset<Row> unionAllSummary(List<Dataset<Row>> datasets, String[] columns) {
+    log.info("Util.unionAllSummary: START");
+    
+    String[] orderedColumns = columns;
+    log.info("Using columns --> {}", Arrays.toString(orderedColumns));
+    
+    Dataset<Row> unionedDatasets = null;
+    
+    for (Dataset<Row> additionalDataset : datasets) {
+        if (additionalDataset != null) {
+            try {
+                if (unionedDatasets == null) {
+                    unionedDatasets = additionalDataset.select(orderedColumns);
+                } else {
+                    unionedDatasets = unionedDatasets.union(
+                        additionalDataset.select(orderedColumns)
+                    );
+                }
+                
+                log.info("Current schema after union --> {}", unionedDatasets.schema());
+                unionedDatasets.show(1, false);  // Show 1 row without truncation
+            } catch(Exception ex) {
+                log.error("Error during union operation: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        }
+    }
+    
+    log.info("Util.unionAllSummary: END");
+    if (unionedDatasets != null) {
+        unionedDatasets.show(1, false);  // Show final result
+    } else {
+        log.warn("No valid datasets were processed.");
+    }
+    
+    return unionedDatasets;
+}
