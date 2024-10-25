@@ -1,0 +1,43 @@
+public class ArrayExploder {
+
+    public static Dataset<Row> explodeAndFlattenStructColumn(final Dataset<Row> dataset, String columnToExplode) {
+        StructType schema = dataset.schema();
+
+        // Find the array column that needs to be exploded and ensure it's a Struct inside the array
+        StructField arrayField = schema.apply(columnToExplode);
+        if (!(arrayField.dataType() instanceof ArrayType)) {
+            throw new IllegalArgumentException("Column " + columnToExplode + " is not an array.");
+        }
+
+        ArrayType arrayType = (ArrayType) arrayField.dataType();
+        if (!(arrayType.elementType() instanceof StructType)) {
+            throw new IllegalArgumentException("Elements of array " + columnToExplode + " are not structs.");
+        }
+
+        StructType structType = (StructType) arrayType.elementType();
+
+        // Explode the array column
+        Dataset<Row> explodedDataset = dataset.withColumn(columnToExplode, explode(col(columnToExplode)));
+
+        // Prepare a list to hold the columns we want to select
+        Column[] columns = new Column[schema.size() + structType.size()];
+        int idx = 0;
+
+        // Add original columns (except the exploded one)
+        for (StructField field : schema.fields()) {
+            String colName = field.name();
+            if (!colName.equals(columnToExplode)) {
+                columns[idx++] = col(colName);
+            }
+        }
+
+        // Dynamically extract struct fields from the exploded array
+        for (StructField structField : structType.fields()) {
+            String fieldName = structField.name();
+            columns[idx++] = col(columnToExplode + "." + fieldName).as(fieldName);
+        }
+
+        // Return the dataset with the exploded and flattened struct fields
+        return explodedDataset.select(columns);
+    }
+}
