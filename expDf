@@ -41,3 +41,20 @@ public class ArrayExploder {
         return explodedDataset.select(columns);
     }
 }
+
+
+  public static Dataset<Row> explodeArray(Dataset<Row> dataset) {
+        StructType schema = dataset.schema();
+        List<Column> selectExprs = new ArrayList<>();
+
+        for (StructField field : schema.fields()) {
+            if (field.dataType().equals(ArrayType.apply(DataTypes.StringType))) {
+                // If the field is an array of strings, explode it
+                selectExprs.add(functions.explode(field.name()).alias(field.name()));
+            } else {
+                // Otherwise, keep the column as is
+                selectExprs.add(field.name());
+            }
+        }
+
+        return dataset.selectExpr(selectExprs.toArray(new Column[0]));
