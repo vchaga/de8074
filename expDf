@@ -58,3 +58,33 @@ public class ArrayExploder {
         }
 
         return dataset.selectExpr(selectExprs.toArray(new Column[0]));
+
+public static Dataset<Row> explodeAndFlattenArrays(Dataset<Row> dataset) {
+    StructType schema = dataset.schema();
+    Dataset<Row> transformedDataset = dataset;
+
+    // Iterate over each field in the schema to check for array types
+    for (StructField field : schema.fields()) {
+        if (field.dataType() instanceof ArrayType) {
+            // Explode the array column
+            transformedDataset = transformedDataset.withColumn(field.name(), explode(col(field.name())));
+
+            // Check if the array elements are structs and flatten them if they are
+            ArrayType arrayType = (ArrayType) field.dataType();
+            if (arrayType.elementType() instanceof StructType) {
+                StructType structType = (StructType) arrayType.elementType();
+                
+                // For each field in the struct, create a new column with the exploded element's field
+                for (StructField nestedField : structType.fields()) {
+                    String newColName = field.name() + "_" + nestedField.name();
+                    transformedDataset = transformedDataset.withColumn(newColName, col(field.name() + "." + nestedField.name()));
+                }
+
+                // Drop the original exploded struct column
+                transformedDataset = transformedDataset.drop(field.name());
+            }
+        }
+    }
+
+    return transformedDataset;
+}
