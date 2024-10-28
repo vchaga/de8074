@@ -88,3 +88,109 @@ public static Dataset<Row> explodeAndFlattenArrays(Dataset<Row> dataset) {
 
     return transformedDataset;
 }
+
+ @Test
+    public void testExplodeArrayWithDefaultColumn() {
+        // Create schema matching the input structure
+        StructType elementSchema = new StructType()
+            .add("flow_result_flow_date", DataTypes.DateType, true)
+            .add("ccf_flow_amt", DataTypes.createDecimalType(38, 9), true)
+            .add("ccf_flow_amt_base", DataTypes.createDecimalType(38, 9), true);
+            
+        StructType arraySchema = new StructType()
+            .add("twd_original_contractual_cashflow_sorted_array", 
+                 DataTypes.createArrayType(elementSchema), true)
+            .add("contractual_cashflow_sorted_array", 
+                 DataTypes.createArrayType(elementSchema), true);
+                 
+        // Create test data
+        List<Row> testData = Arrays.asList(
+            RowFactory.create(
+                Arrays.asList(
+                    RowFactory.create(
+                        Date.valueOf("2024-01-01"),
+                        new BigDecimal("1000.123456789"),
+                        new BigDecimal("1000.123456789")
+                    )
+                ),
+                Arrays.asList(
+                    RowFactory.create(
+                        Date.valueOf("2024-01-01"),
+                        new BigDecimal("2000.123456789"),
+                        new BigDecimal("2000.123456789")
+                    )
+                )
+            )
+        );
+        
+        Dataset<Row> inputDF = spark.createDataFrame(testData, arraySchema);
+        
+        // Test the explodeArray method
+        Dataset<Row> result = YourClass.explodeArray(inputDF);
+        
+        // Verify results
+        assertEquals(2, result.count()); // Should have 2 rows after explosion
+        assertTrue(result.columns().contains("flow_result_flow_date"));
+        assertTrue(result.columns().contains("ccf_flow_amt"));
+        assertTrue(result.columns().contains("ccf_flow_amt_base"));
+    }
+    
+    @Test
+    public void testExplodeArrayWithSpecificColumn() {
+        // Create schema for specific column test
+        StructType elementSchema = new StructType()
+            .add("flow_result_flow_date", DataTypes.DateType, true)
+            .add("ccf_flow_amt", DataTypes.createDecimalType(38, 9), true)
+            .add("ccf_flow_amt_base", DataTypes.createDecimalType(38, 9), true)
+            .add("fsi_shock_value", DataTypes.createDecimalType(38, 9), true);
+            
+        StructType arraySchema = new StructType()
+            .add("twd_fsi_shock_cashflow_sorted_array", 
+                 DataTypes.createArrayType(elementSchema), true);
+                 
+        // Create test data
+        List<Row> testData = Arrays.asList(
+            RowFactory.create(
+                Arrays.asList(
+                    RowFactory.create(
+                        Date.valueOf("2024-01-01"),
+                        new BigDecimal("1000.123456789"),
+                        new BigDecimal("1000.123456789"),
+                        new BigDecimal("0.05")
+                    ),
+                    RowFactory.create(
+                        Date.valueOf("2024-01-02"),
+                        new BigDecimal("2000.123456789"),
+                        new BigDecimal("2000.123456789"),
+                        new BigDecimal("0.07")
+                    )
+                )
+            )
+        );
+        
+        Dataset<Row> inputDF = spark.createDataFrame(testData, arraySchema);
+        
+        // Test the explodeArray method with specific column
+        Dataset<Row> result = YourClass.explodeArray(
+            inputDF, 
+            "twd_fsi_shock_cashflow_sorted_array"
+        );
+        
+        // Verify results
+        assertEquals(2, result.count()); // Should have 2 rows after explosion
+        assertTrue(result.columns().contains("flow_result_flow_date"));
+        assertTrue(result.columns().contains("ccf_flow_amt"));
+        assertTrue(result.columns().contains("ccf_flow_amt_base"));
+        assertTrue(result.columns().contains("fsi_shock_value"));
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testExplodeArrayWithInvalidColumn() {
+        Dataset<Row> inputDF = spark.createDataFrame(
+            Arrays.asList(1), 
+            new StructType().add("dummy", DataTypes.IntegerType)
+        );
+        
+        // Should throw IllegalArgumentException for invalid column
+        YourClass.explodeArray(inputDF, "non_existent_column");
+    }
