@@ -1,0 +1,32 @@
+import pandas as pd
+
+# Load the Excel files
+df1 = pd.read_excel("original_file.xlsx")  # Original file
+df2 = pd.read_excel("updated_file.xlsx")  # Updated file
+
+# Ensure consistent sorting for comparison
+df1 = df1.sort_values(by="sort_order").reset_index(drop=True)
+df2 = df2.sort_values(by="sort_order").reset_index(drop=True)
+
+# Define columns to compare, excluding 'sort_order'
+compare_columns = [col for col in df1.columns if col != "sort_order"]
+
+# Identify new rows
+new_rows = df2[~df2[compare_columns].apply(tuple, axis=1).isin(df1[compare_columns].apply(tuple, axis=1))]
+
+# Identify deleted rows
+deleted_rows = df1[~df1[compare_columns].apply(tuple, axis=1).isin(df2[compare_columns].apply(tuple, axis=1))]
+
+# Identify rows with updated sort_order
+common_rows = pd.merge(df1, df2, on=compare_columns, suffixes=('_old', '_new'))
+updated_sort_order = common_rows[common_rows["sort_order_old"] != common_rows["sort_order_new"]]
+
+# Print the results
+print("New Rows Added:")
+print(new_rows)
+
+print("\nRows Deleted:")
+print(deleted_rows)
+
+print("\nRows with Updated Sort Order:")
+print(updated_sort_order[compare_columns + ["sort_order_old", "sort_order_new"]])
