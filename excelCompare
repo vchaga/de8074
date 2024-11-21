@@ -30,3 +30,35 @@ print(deleted_rows)
 
 print("\nRows with Updated Sort Order:")
 print(updated_sort_order[compare_columns + ["sort_order_old", "sort_order_new"]])
+
+========
+
+# List of columns to exclude
+exclude_columns = ["sort_order", "column_to_exclude_1", "column_to_exclude_2"]
+
+# Define columns to compare by excluding the specified columns
+compare_columns = [col for col in df1.columns if col not in exclude_columns]
+
+# Identify new rows
+new_rows = df2[~df2[compare_columns].apply(tuple, axis=1).isin(df1[compare_columns].apply(tuple, axis=1))]
+
+# Identify deleted rows
+deleted_rows = df1[~df1[compare_columns].apply(tuple, axis=1).isin(df2[compare_columns].apply(tuple, axis=1))]
+
+# Identify rows with updated sort_order or other excluded columns
+common_rows = pd.merge(df1, df2, on=compare_columns, suffixes=('_old', '_new'))
+updated_excluded_columns = common_rows[
+    (common_rows["sort_order_old"] != common_rows["sort_order_new"]) |
+    (common_rows["column_to_exclude_1_old"] != common_rows["column_to_exclude_1_new"]) |
+    (common_rows["column_to_exclude_2_old"] != common_rows["column_to_exclude_2_new"])
+]
+
+# Print the results
+print("New Rows Added:")
+print(new_rows)
+
+print("\nRows Deleted:")
+print(deleted_rows)
+
+print("\nRows with Updated Excluded Columns:")
+print(updated_excluded_columns[compare_columns + [col + '_old' for col in exclude_columns] + [col + '_new' for col in exclude_columns]])
