@@ -62,3 +62,44 @@ print(deleted_rows)
 
 print("\nRows with Updated Excluded Columns:")
 print(updated_excluded_columns[compare_columns + [col + '_old' for col in exclude_columns] + [col + '_new' for col in exclude_columns]])
+
+============
+
+import pandas as pd
+
+# Load the two Excel sheets
+file1 = "file1.xlsx"  # Original file
+file2 = "file2.xlsx"  # Updated file
+
+df1 = pd.read_excel(file1)
+df2 = pd.read_excel(file2)
+
+# Columns to compare (e.g., id and name) and display in the output
+compare_columns = ["id", "name"]  # Columns you want to keep for comparison
+all_columns = list(df1.columns)
+
+# Add a line number for tracking
+df1['line_number'] = range(1, len(df1) + 1)
+df2['line_number'] = range(1, len(df2) + 1)
+
+# Ensure consistent column order and case for comparison
+df1 = df1[all_columns]
+df2 = df2[all_columns]
+
+# Identify new rows (in file2 but not in file1)
+new_rows = df2[~df2[compare_columns].apply(tuple, axis=1).isin(df1[compare_columns].apply(tuple, axis=1))]
+
+# Identify deleted rows (in file1 but not in file2)
+deleted_rows = df1[~df1[compare_columns].apply(tuple, axis=1).isin(df2[compare_columns].apply(tuple, axis=1))]
+
+# Combine new and deleted rows, including line numbers
+output_new = new_rows[["line_number"] + compare_columns]
+output_deleted = deleted_rows[["line_number"] + compare_columns]
+
+# Save to separate Excel sheets for manual review
+output_file = "comparison_results.xlsx"
+with pd.ExcelWriter(output_file) as writer:
+    output_new.to_excel(writer, index=False, sheet_name="New Rows")
+    output_deleted.to_excel(writer, index=False, sheet_name="Deleted Rows")
+
+print(f"Comparison complete. Results saved to {output_file}")
